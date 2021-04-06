@@ -24,6 +24,11 @@ contract Market is ERC1155, ERC1155TokenReceiver{
 
     }
 
+    function openSale(uint256 _tokenId, uint256 _amount) external {
+        require(balanceOf(msg.sender, _tokenId) >= _amount);
+        safeTransferFrom(msg.sender, _to, _id, _value, _data);
+    }
+
     function _mint(address _emitter, uint256 _tokenId, string memory _name, string memory _symbol,uint256 _amount) internal{
         require(_emitter != address(0), "emitter address is 0");
         require(!_tokenExists[_tokenId], "token already exists");
@@ -76,11 +81,11 @@ contract Market is ERC1155, ERC1155TokenReceiver{
         bytes calldata _data
     ) external{
         require(_to != address(0));
-        require(this.balanceOf(_from, _id) >= _value);
-        require(_from == msg.sender || this.isApprovedForAll(_from, msg.sender));
+        require(balanceOf(_from, _id) >= _value);
+        require(_from == msg.sender || isApprovedForAll(_from, msg.sender));
         require(_checkOnERC1155Received(msg.sender, _from, _to, _id, _value, _data) == true);
 
-        _balance[_from][_id] = this.balanceOf(_from, _id) - _value;
+        _balance[_from][_id] = balanceOf(_from, _id) - _value;
         _balance[_to][_id] += _value;
 
         emit TransferSingle(msg.sender, _from, _to, _id, _value); 
@@ -95,16 +100,16 @@ contract Market is ERC1155, ERC1155TokenReceiver{
     ) external{
         require(_to != address(0));
         require(_ids.length == _values.length);
-        require(_from == msg.sender || this.isApprovedForAll(_from, msg.sender));
-        require(_checkOnERC1155BatchReceived(msg.sender, _from, _to, _id, _value, _data) == true);
+        require(_from == msg.sender || isApprovedForAll(_from, msg.sender));
+        require(_checkOnERC1155BatchReceived(msg.sender, _from, _to, _id, _values, _data) == true);
 
 
         for (uint256 i = 0; i < _ids.length; ++i){
-            uint256 id = ids[i];
+            uint256 id = _ids[i];
             uint256 amount = _values[i];
 
-            require(balanceOf(_from,id) >= amount);
-            _balance[_from][id] = balanceOf(_from,id) - amount;
+            require(balanceOf(_from,id) >= amount); 
+            _balance[_from][id] = this.balanceOf(_from,id) - amount;
             _balance[_to][id] += amount;
         }
 
