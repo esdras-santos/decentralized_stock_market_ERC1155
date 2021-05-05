@@ -3,7 +3,7 @@ pragma solidity ^0.6.0;
 import './interfaces/ERC1155.sol';
 import './interfaces/ERC1155Receiver.sol';
 
-contract Market is ERC1155 /*, ERC1155TokenReceiver*/{
+contract Market is ERC1155 , ERC1155TokenReceiver{
 
     event Open(string name, string symbol, uint256 amount, uint256 tokenId);
     event TransferSingle(address indexed _operator, address indexed _from, address indexed _to, uint256 _id, uint256 _value);
@@ -40,25 +40,25 @@ contract Market is ERC1155 /*, ERC1155TokenReceiver*/{
         emit Open(_name, _symbol, _amount, _tokenId);
     }
 
-    //function onERC1155Received(
-    //    address _operator, 
-    //    address _from, 
-    //    uint256 _id, 
-    //    uint256 _value, 
-    //    bytes calldata _data
-    //) external view returns(bytes4){
-    //    return bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
-    //}
+    function onERC1155Received(
+        address _operator, 
+        address _from, 
+        uint256 _id, 
+        uint256 _value, 
+        bytes calldata _data
+    ) external override view returns(bytes4){
+        return bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
+    }
 
-    //function onERC1155BatchReceived(
-    //    address _operator, 
-    //    address _from, 
-    //    uint256[] calldata _ids, 
-    //    uint256[] calldata _values, 
-    //    bytes calldata _data
-    //) external viewreturns(bytes4){
-    //    return bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
-    //}    
+    function onERC1155BatchReceived(
+        address _operator, 
+        address _from, 
+        uint256[] calldata _ids, 
+        uint256[] calldata _values, 
+        bytes calldata _data
+    ) external override view returns(bytes4){
+        return bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
+    }    
 
     function name(uint256 _tokenId) external view returns(string memory){
         return _tokenName[_tokenId];
@@ -72,11 +72,11 @@ contract Market is ERC1155 /*, ERC1155TokenReceiver*/{
         return _tokenSupply[_tokenId];
     }
 
-    function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _value, bytes calldata _data) external{
+    function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _value, bytes calldata _data) external override{
         require(_to != address(0));
         require(_balance[_from][_id] >= _value);
         require(_from == msg.sender || _isApproved[_from][msg.sender]);
-        //require(_checkOnERC1155Received(msg.sender, _from, _to, _id, _value, _data) == true);
+        require(_checkOnERC1155Received(msg.sender, _from, _to, _id, _value, _data) == true);
 
         _balance[_from][_id] = _balance[_from][_id] - _value;
         _balance[_to][_id] += _value;
@@ -90,11 +90,11 @@ contract Market is ERC1155 /*, ERC1155TokenReceiver*/{
         uint256[] calldata _ids, 
         uint256[] calldata _values, 
         bytes calldata _data
-    ) external{
+    ) external override{
         require(_to != address(0));
         require(_ids.length == _values.length);
         require(_from == msg.sender || _isApproved[_from][msg.sender]);
-        //require(_checkOnERC1155BatchReceived(msg.sender, _from, _to, _ids, _values, _data) == true);
+        require(_checkOnERC1155BatchReceived(msg.sender, _from, _to, _ids, _values, _data) == true);
 
 
         for (uint256 i = 0; i < _ids.length; ++i){
@@ -112,14 +112,14 @@ contract Market is ERC1155 /*, ERC1155TokenReceiver*/{
     function balanceOf(
         address _owner, 
         uint256 _id
-    ) external view returns (uint256){
+    ) external override view returns (uint256){
         return _balance[_owner][_id];
     }
 
     function balanceOfBatch(
         address[] calldata _owners,
         uint256[] calldata _ids
-    ) external view returns (uint256[] memory){
+    ) external override view returns (uint256[] memory){
         require(_owners.length == _ids.length);
 
         uint256[] memory batch = new uint256[](_owners.length);
@@ -134,7 +134,7 @@ contract Market is ERC1155 /*, ERC1155TokenReceiver*/{
     function setApprovalForAll(
         address _operator, 
         bool _approved
-    ) external{
+    ) external override{
         require(msg.sender != _operator);
 
         _isApproved[msg.sender][_operator] = _approved;
@@ -144,40 +144,47 @@ contract Market is ERC1155 /*, ERC1155TokenReceiver*/{
     function isApprovedForAll(
         address _owner,
         address _operator
-    ) external view returns (bool){
+    ) external override view returns (bool){
         return _isApproved[_owner][_operator];
     }
 
- //   function _checkOnERC1155Received(
-  //      address _operator, 
- //       address _from, 
- //       address _to, 
- //       uint256 _tokenId, 
- //       uint256 _amount, 
- //       bytes memory _data
-  //  ) internal returns (bool){
-  //      if (!_to.isContract()) {
-   //         return true;
-   //     }
- //       _ERC1155Received = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
-  //      bytes4 retval = ERC1155TokenReceiver(_to).onERC1155Received(_operator, _from, _tokenId, _amount,_data);
-   //     return (retval == _ERC1155Received);
-   // }
+    function _checkOnERC1155Received(
+        address _operator, 
+        address _from, 
+        address _to, 
+        uint256 _tokenId, 
+        uint256 _amount, 
+        bytes memory _data
+    ) internal returns (bool){
+        if (!isContract(_to)) {
+            return true;
+        }
+        _ERC1155Received = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
+        bytes4 retval = ERC1155TokenReceiver(_to).onERC1155Received(_operator, _from, _tokenId, _amount,_data);
+        return (retval == _ERC1155Received);
+    }
 
-    //function _checkOnERC1155BatchReceived(
-    //    address _operator, 
-    //    address _from, 
-    //    address _to, 
-     //   uint256[] memory _Ids, 
-    //    uint256[] memory _amounts, 
-    //    bytes memory _data
-    //) internal returns (bool){
-     //   if (!_to.isContract()) {
-     //       return true;
-     //   }
-      //  _ERC1155BatchReceived = bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
-      //  bytes4 retval = ERC1155TokenReceiver(_to).onERC1155BatchReceived(_operator, _from, _Ids, _amounts,_data);
-       // return (retval == _ERC1155BatchReceived);
-    //}
+    function _checkOnERC1155BatchReceived(
+        address _operator, 
+        address _from, 
+        address _to, 
+        uint256[] memory _Ids, 
+        uint256[] memory _amounts, 
+        bytes memory _data
+    ) internal returns (bool){
+        if (!isContract(_to)) {
+            return true;
+        }
+        _ERC1155BatchReceived = bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
+        bytes4 retval = ERC1155TokenReceiver(_to).onERC1155BatchReceived(_operator, _from, _Ids, _amounts,_data);
+        return (retval == _ERC1155BatchReceived);
+    }
+
+    function isContract(address _a) internal returns (bool){
+        uint len;
+        assembly { len := extcodesize(_a) }
+        return len != 0;
+    }
 
 }
+
