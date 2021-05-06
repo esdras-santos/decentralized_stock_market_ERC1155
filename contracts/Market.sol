@@ -180,10 +180,10 @@ contract Market is ERC1155 , ERC1155TokenReceiver{
         return (retval == _ERC1155BatchReceived);
     }
 
-    function isContract(address _a) internal returns (bool){
-        uint len;
-        assembly { len := extcodesize(_a) }
-        return len != 0;
+    function isContract(address addr) internal returns (bool) {
+        uint size;
+        assembly { size := extcodesize(addr) }
+        return size > 0;
     }
 
 }
