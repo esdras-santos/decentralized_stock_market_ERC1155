@@ -1,7 +1,7 @@
 pragma solidity ^0.6.0;
 
-import './IERC1155.sol';
-import './IERC1155TokenReceiver.sol';
+import './interfaces/IERC1155.sol';
+import './interfaces/IERC1155TokenReceiver.sol';
 
 
 contract ERC1155 is IERC1155, IERC1155TokenReceiver{
@@ -49,10 +49,7 @@ contract ERC1155 is IERC1155, IERC1155TokenReceiver{
     //if ether are sended to the contract
     fallback() external payable{
         require(msg.data.length == 0);
-        bool success;
-        uint256 value = msg.value;
-        (success,_etherBalance[msg.sender]) = uint256.tryAdd(_etherBalance[msg.sender], value);
-        require(success);
+        _etherBalance[msg.sender] += msg.value;
     }
 
     function depositEther() external payable{
@@ -119,7 +116,7 @@ contract ERC1155 is IERC1155, IERC1155TokenReceiver{
         uint256 _tokenId, 
         uint256 _amount, 
         bytes memory _data
-    ) internal returns (bool){
+    ) internal view returns (bool){
         if (!isContract(_to)) {
             return true;
         }
@@ -134,7 +131,7 @@ contract ERC1155 is IERC1155, IERC1155TokenReceiver{
         uint256[] memory _Ids, 
         uint256[] memory _amounts, 
         bytes memory _data
-    ) internal returns (bool){
+    ) internal view returns (bool){
         if (!isContract(_to)) {
             return true;
         }
@@ -143,7 +140,7 @@ contract ERC1155 is IERC1155, IERC1155TokenReceiver{
         return (retval == _ERC1155BatchReceived);
     }
 
-    function isContract(address addr) internal returns (bool) {
+    function isContract(address addr) internal view returns (bool) {
         uint size;
         assembly{ size := extcodesize(addr)}
         return size > 0;
