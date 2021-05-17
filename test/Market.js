@@ -1,5 +1,4 @@
 
-
 const Market = artifacts.require('Market')
 
 contract('Market', (accounts) => {
@@ -24,6 +23,16 @@ contract('Market', (accounts) => {
 
     it('Should make a safe transfer from', async ()=>{
         await market.mint(10, 100,{from: accounts[0]})
+        try{       
+            await market.safeTransferFrom(accounts[0],accounts[1],10,145, '0x0', {from: accounts[0]})
+        } catch(e){
+            assert(e.message.indexOf("revert") >= 0, "value larger than balance")
+        } 
+        try{       
+            await market.safeTransferFrom(accounts[0],accounts[1],10,145, '0x0', {from: accounts[1]})
+        } catch(e){
+            assert(e.message.indexOf("revert") >= 0, "not owner or approved")
+        }    
         await market.safeTransferFrom(accounts[0],accounts[1],10,45, '0x0', {from: accounts[0]})
         const balance1 = await market.balanceOf(accounts[0],10)
         const balance2 = await market.balanceOf(accounts[1],10)
