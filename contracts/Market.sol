@@ -4,7 +4,7 @@ import './interfaces/IERC1155.sol';
 import './interfaces/IERC1155TokenReceiver.sol';
 
 
-contract ERC1155 is IERC1155, IERC1155TokenReceiver{
+contract Market is IERC1155, IERC1155TokenReceiver{
     event TransferSingle(address indexed _operator, address indexed _from, address indexed _to, uint256 _id, uint256 _value);
     event TransferBatch(address indexed _operator, address indexed _from, address indexed _to, uint256[] _ids, uint256[] _values);
     event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
@@ -41,10 +41,15 @@ contract ERC1155 is IERC1155, IERC1155TokenReceiver{
     } 
 
     //test function
-    function mint(uint256 id, uint256 amount) external {
-        
+    function mint(uint256 id, uint256 amount) external { 
         _balance[msg.sender][id] = amount;
     }
+
+    //test function
+    function burn(uint256 id) external { 
+        _balance[msg.sender][id] = 0;
+    }
+
 
     //if ether are sended to the contract
     fallback() external payable{
@@ -72,7 +77,7 @@ contract ERC1155 is IERC1155, IERC1155TokenReceiver{
 
     function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data) external override{
         require(_to != address(0) && _from != address(0));
-        require(_ids.length != _values.length);
+        require(_ids.length == _values.length);
         require(_approv[_from][msg.sender] || _from == msg.sender);
         for (uint256 i = 0; i < _ids.length; ++i) {
             require(_balance[_from][_ids[i]] >= _values[i]);
@@ -89,10 +94,11 @@ contract ERC1155 is IERC1155, IERC1155TokenReceiver{
     }
 
     function balanceOfBatch(address[] calldata _owners, uint256[] calldata _ids) external override view returns (uint256[] memory){
-        uint256[] memory _balances;
+        require(_owners.length == _ids.length);
+        uint256[] memory _balances = new uint256[](_owners.length);
         for (uint256 i = 0; i < _owners.length; ++i) {
             require(_owners[i] != address(0));
-            _balances[i] = _balance[_owners[i]][_ids[i]]; 
+            _balances[i] = (_balance[_owners[i]][_ids[i]]); 
         }
         return _balances;
     }
