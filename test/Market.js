@@ -31,7 +31,7 @@ contract('Market', (accounts) => {
         try{       
             await market.safeTransferFrom(accounts[0],accounts[1],10,145, '0x0', {from: accounts[1]})
         } catch(e){
-            assert(e.message.indexOf("revert") >= 0, "not owner or approved")
+            assert(e.message.indexOf("revert") >= 0, "not owner neither approved")
         }    
         await market.safeTransferFrom(accounts[0],accounts[1],10,45, '0x0', {from: accounts[0]})
         const balance1 = await market.balanceOf(accounts[0],10)
