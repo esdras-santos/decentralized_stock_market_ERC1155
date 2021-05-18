@@ -13,9 +13,16 @@ contract('Market', (accounts) => {
     })
 
     it('Should show the correct balance of a batch', async ()=>{
+        //begin set balances for test
         await market.mint(10,100,{from: accounts[0]})
         await market.mint(20,110,{from: accounts[1]})
         await market.mint(30,120,{from: accounts[2]})
+        //end set balances for test
+        try{  
+            await market.balanceOfBatch([accounts[0],accounts[1],accounts[2]], [10,20,30,40])
+        } catch(e){
+            assert(e.message.indexOf("revert") >= 0, "ids length is larger than addresses length")
+        }
         const balance = await market.balanceOfBatch([accounts[0],accounts[1],accounts[2]], [10,20,30])
         const balances = balance.map(id => id.toNumber())
         assert.deepEqual(balances, [100,110,120])
@@ -41,10 +48,27 @@ contract('Market', (accounts) => {
     })
 
     it('Should make a safe batch transfer from', async ()=>{
+        // begin set balances for test
         await market.burn(10, {from: accounts[1]})
         await market.burn(20, {from: accounts[1]})
         await market.mint(10, 100,{from: accounts[0]})
         await market.mint(20, 100,{from: accounts[0]})
+        // and set balances 
+        try{       
+            await market.safeBatchTransferFrom(accounts[0],accounts[1],[10,20,30],[45,50], '0x0', {from: accounts[0]})
+        } catch(e){
+            assert(e.message.indexOf("revert") >= 0, "ids length is larger than addresses length")
+        }
+        try{       
+            await market.safeBatchTransferFrom(accounts[0],accounts[1],[10,20],[45,50], '0x0', {from: accounts[1]})
+        } catch(e){
+            assert(e.message.indexOf("revert") >= 0, "not the owner or approved")
+        } 
+        try{       
+            await market.safeBatchTransferFrom(accounts[0],accounts[1],[10,20],[145,150], '0x0', {from: accounts[0]})
+        } catch(e){
+            assert(e.message.indexOf("revert") >= 0, "amounts larger than the balances")
+        } 
         await market.safeBatchTransferFrom(accounts[0],accounts[1],[10,20],[45,50], '0x0', {from: accounts[0]})
         const balance1 = await market.balanceOfBatch([accounts[0],accounts[1]],[10,10])
         const balances1 = balance1.map(id => id.toNumber())
@@ -57,6 +81,11 @@ contract('Market', (accounts) => {
     it('should approve an operator', async () =>{
         await market.burn(10,{from:accounts[1]})
         await market.mint(10, 100,{from: accounts[0]})
+        try{       
+            await market.setApprovalForAll(accounts[1], true,{from: accounts[1]})
+        } catch(e){
+            assert(e.message.indexOf("revert") >= 0, "the owner cannot be the operator")
+        } 
         await market.setApprovalForAll(accounts[1], true,{from: accounts[0]})
         const isAppr = await market.isApprovedForAll(accounts[0],accounts[1])
         assert(isAppr)
