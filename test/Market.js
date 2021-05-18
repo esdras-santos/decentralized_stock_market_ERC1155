@@ -40,7 +40,14 @@ contract('Market', (accounts) => {
         } catch(e){
             assert(e.message.indexOf("revert") >= 0, "not owner neither approved")
         }    
-        await market.safeTransferFrom(accounts[0],accounts[1],10,45, '0x0', {from: accounts[0]})
+        const receipt = await market.safeTransferFrom(accounts[0],accounts[1],10,45, '0x0', {from: accounts[0]})
+        assert.equal(receipt.logs.length, 1, "trigger event")
+        assert.equal(receipt.logs[0].event, "TransferSingle", "should be the the transfersingle event")
+        assert.equal(receipt.logs[0].args._operator, accounts[0], "the operator")
+        assert.equal(receipt.logs[0].args._from, accounts[0], "owner of the tokens")
+        assert.equal(receipt.logs[0].args._to, accounts[1], "receipt of the tokens")
+        assert.equal(receipt.logs[0].args._id, 10, "id of tokens sended")
+        assert.equal(receipt.logs[0].args._value, 45, "amount of tokens sended")
         const balance1 = await market.balanceOf(accounts[0],10)
         const balance2 = await market.balanceOf(accounts[1],10)
         assert(balance1.toNumber() === 55)
@@ -68,8 +75,19 @@ contract('Market', (accounts) => {
             await market.safeBatchTransferFrom(accounts[0],accounts[1],[10,20],[145,150], '0x0', {from: accounts[0]})
         } catch(e){
             assert(e.message.indexOf("revert") >= 0, "amounts larger than the balances")
-        } 
-        await market.safeBatchTransferFrom(accounts[0],accounts[1],[10,20],[45,50], '0x0', {from: accounts[0]})
+        }
+
+        const receipt = await market.safeBatchTransferFrom(accounts[0],accounts[1],[10,20],[45,50], '0x0', {from: accounts[0]})
+        assert.equal(receipt.logs.length, 1, "trigger event")
+        assert.equal(receipt.logs[0].event, "TransferBatch", "should be the transferbatch event")
+        assert.equal(receipt.logs[0].args._operator, accounts[0], "the operator")
+        assert.equal(receipt.logs[0].args._from, accounts[0], "owner of the tokens")
+        assert.equal(receipt.logs[0].args._to, accounts[1], "receipt of the tokens")
+        const ids = receipt.logs[0].args._ids.map(id => id.toNumber())
+        assert.deepEqual(ids, [10,20])
+        const values = receipt.logs[0].args._values.map(id => id.toNumber())
+        assert.deepEqual(values, [45,50])
+        
         const balance1 = await market.balanceOfBatch([accounts[0],accounts[1]],[10,10])
         const balances1 = balance1.map(id => id.toNumber())
         const balance2 = await market.balanceOfBatch([accounts[0],accounts[1]],[20,20])
@@ -86,7 +104,13 @@ contract('Market', (accounts) => {
         } catch(e){
             assert(e.message.indexOf("revert") >= 0, "the owner cannot be the operator")
         } 
-        await market.setApprovalForAll(accounts[1], true,{from: accounts[0]})
+        const receipt = await market.setApprovalForAll(accounts[1], true,{from: accounts[0]})
+        assert.equal(receipt.logs.length, 1, "trigger event")
+        assert.equal(receipt.logs[0].event, "ApprovalForAll", "should be the approvalforall event")
+        assert.equal(receipt.logs[0].args._owner, accounts[0], "owner of the tokens")
+        assert.equal(receipt.logs[0].args._operator, accounts[1], "the operator")
+        assert.equal(receipt.logs[0].args._approved, true, " is approved")
+        
         const isAppr = await market.isApprovedForAll(accounts[0],accounts[1])
         assert(isAppr)
         await market.safeTransferFrom(accounts[0],accounts[1],10,45, '0x0', {from: accounts[1]})
