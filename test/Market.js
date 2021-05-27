@@ -6,6 +6,26 @@ contract('Market', (accounts) => {
     before(async ()=>{
         market = await Market.deployed()
     })
+
+    it("Test the panic button", async ()=>{ 
+        try{
+            await market.panic({from: accounts[1]})
+        }catch(e){
+            assert(e.message.indexOf("revert") >= 0, "only the admin can make that")
+        }
+        await market.mint(10, 100,{from: accounts[0]})
+        // in this case account 0 is the admin.
+        //turning on the panic button.
+        await market.panic({from: accounts[0]})
+        try{
+            await market.safeTransferFrom(accounts[0],accounts[1],10,45, '0x0', {from: accounts[0]})
+        }catch(e){
+            assert(e.message.indexOf("revert") >= 0, "panic button is activated")
+        }
+        //turning off the punic button
+        await market.panic({from: accounts[0]})
+    })
+
     it('Should show the correct balance', async ()=>{
         await market.mint(10,100,{from: accounts[0]})
         const balance = await market.balanceOf(accounts[0], 10)
@@ -116,6 +136,25 @@ contract('Market', (accounts) => {
         await market.safeTransferFrom(accounts[0],accounts[1],10,45, '0x0', {from: accounts[1]})
         const balance = await market.balanceOf(accounts[1],10)
         assert(balance.toNumber() === 45)
+    })
+
+    //the balances need to be tested carefully
+    it("Should shutdown the contract", async ()=>{
+        try{
+            await market.shutDown({from: accounts[1]})
+        }catch(e){
+            assert(e.message.indexOf("revert") >= 0, "only the admin can make that")
+        }
+        try{
+            await market.shutDown({from: accounts[0]})
+        }catch(e){
+            assert(e.message.indexOf("revert") >= 0, "is not in emergency")
+        }
+        // in this case account 0 is the admin
+        await market.panic({from: accounts[0]})
+
+        //TEST THE FUCKING BALANCES YOUR DUMB
+        await market.shutDown({from:accounts[0]})
     })
 
 })

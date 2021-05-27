@@ -17,7 +17,31 @@ contract Market is IERC1155, IERC1155TokenReceiver{
     bytes4 private _ERC1155Received = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
     bytes4 private _ERC1155BatchReceived = bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
 
-    constructor() public {        
+    address private _admin;
+    bool private _emergency;
+
+    modifier onlyAdmin{
+        require(msg.sender == _admin);
+        _;
+    }
+
+    modifier onlyInEmergency{
+        require(_emergency);
+        _;
+    } 
+
+    modifier stopInEmergency{
+        require(!_emergency);
+        _;
+    }
+
+    constructor() public {   
+        _admin = msg.sender;     
+    }
+
+    function panic() public onlyAdmin returns (bool){
+        _emergency = !_emergency;
+        return true;
     }
 
     function onERC1155Received(
@@ -52,12 +76,12 @@ contract Market is IERC1155, IERC1155TokenReceiver{
 
 
     //if ether are sended to the contract
-    fallback() external payable{
+    fallback() external stopInEmergency payable{
         require(msg.data.length == 0);
         _etherBalance[msg.sender] += msg.value;
     }
 
-    function depositEther() external payable{
+    function depositEther() external stopInEmergency payable{
         _etherBalance[msg.sender] += msg.value;
     }
     
@@ -65,7 +89,7 @@ contract Market is IERC1155, IERC1155TokenReceiver{
         return _etherBalance[owner];
     }
 
-    function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _value, bytes calldata _data) external override{
+    function safeTransferFrom(address _from, address _to, uint256 _id, uint256 _value, bytes calldata _data) external stopInEmergency override{
         require(_to != address(0) && _from != address(0));
         require(_balance[_from][_id] >= _value);
         require(_approv[_from][msg.sender] || _from == msg.sender);
@@ -75,7 +99,7 @@ contract Market is IERC1155, IERC1155TokenReceiver{
         require(_checkOnERC1155Received(msg.sender, _from, _to, _id, _value, _data));
     }
 
-    function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data) external override{
+    function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data) external stopInEmergency override{
         require(_to != address(0) && _from != address(0));
         require(_ids.length == _values.length);
         require(_approv[_from][msg.sender] || _from == msg.sender);
@@ -103,7 +127,7 @@ contract Market is IERC1155, IERC1155TokenReceiver{
         return _balances;
     }
 
-    function setApprovalForAll(address _operator, bool _approved) external override{
+    function setApprovalForAll(address _operator, bool _approved) external stopInEmergency override{
         require(_operator != address(0));
         require(msg.sender != _operator);
 
@@ -113,6 +137,11 @@ contract Market is IERC1155, IERC1155TokenReceiver{
 
     function isApprovedForAll(address _owner, address _operator) external override view returns (bool){
         return _approv[_owner][_operator];
+    }
+
+    //THIS FUNCTION NEED TO BE CHANGED
+    function shutDown() public onlyInEmergency onlyAdmin{
+        selfdestruct(payable(_admin));
     }
 
     function _checkOnERC1155Received(
